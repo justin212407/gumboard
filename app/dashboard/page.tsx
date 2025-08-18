@@ -352,6 +352,7 @@ export default function Dashboard() {
               </Link>
 
               {boards.map((board) => (
+
                 <div key={board.id} className="relative group">
                   <Link href={`/boards/${board.id}`}>
                     <Card
@@ -368,6 +369,7 @@ export default function Dashboard() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
+
                       </div>
                       <CardHeader>
                         <div className="grid grid-cols-[1fr_auto] items-start justify-between gap-2 pr-6">
