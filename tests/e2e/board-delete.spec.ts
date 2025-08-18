@@ -1,4 +1,3 @@
-// tests/e2e/board-delete.spec.ts
 import { test, expect } from "../fixtures/test-helpers";
 
 test.describe("Board Deletion", () => {
@@ -7,7 +6,6 @@ test.describe("Board Deletion", () => {
     testContext,
     testPrisma,
   }) => {
-    // Arrange — create a board owned by the logged-in test user
     const boardName = testContext.getBoardName("Delete Test Board");
     const board = await testPrisma.board.create({
       data: {
@@ -18,7 +16,6 @@ test.describe("Board Deletion", () => {
       },
     });
 
-    // Act — open dashboard, delete the card
     await authenticatedPage.goto("/dashboard");
     await authenticatedPage.waitForLoadState("networkidle");
 
@@ -35,10 +32,8 @@ test.describe("Board Deletion", () => {
     await expect(confirmDelete).toBeVisible({ timeout: 5_000 });
     await confirmDelete.click();
 
-    // Assert — card gone in UI
     await expect(boardCard).toHaveCount(0);
 
-    // And row gone in DB
     const dbAfter = await testPrisma.board.findUnique({ where: { id: board.id } });
     expect(dbAfter).toBeNull();
   });
@@ -48,7 +43,6 @@ test.describe("Board Deletion", () => {
     testContext,
     testPrisma,
   }) => {
-    // Arrange — create a board so we have a card
     const boardName = testContext.getBoardName("No-Permission Delete Board");
     const board = await testPrisma.board.create({
       data: {
@@ -72,7 +66,6 @@ test.describe("Board Deletion", () => {
       }
     });
 
-    // Act — attempt delete
     await authenticatedPage.goto("/dashboard");
     await authenticatedPage.waitForLoadState("networkidle");
 
@@ -88,7 +81,6 @@ test.describe("Board Deletion", () => {
     await expect(confirmDelete).toBeVisible({ timeout: 5_000 });
     await confirmDelete.click();
 
-    // Assert — error toast/message appears, DB row still exists
     await expect(authenticatedPage.getByText(/failed to delete board/i)).toBeVisible({
       timeout: 10_000,
     });
