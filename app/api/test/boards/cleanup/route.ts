@@ -6,10 +6,7 @@ export async function DELETE(request: Request) {
     const { name } = await request.json();
 
     if (!name) {
-      return NextResponse.json(
-        { error: "Board name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Board name is required" }, { status: 400 });
     }
 
     // Delete test boards matching the name
@@ -22,9 +19,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error cleaning up test boards:", error);
-    return NextResponse.json(
-      { error: "Failed to clean up test boards" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to clean up test boards" }, { status: 500 });
   }
 }

@@ -2,7 +2,11 @@
 import { test, expect } from "../fixtures/test-helpers";
 
 test.describe("Board Deletion", () => {
-  test("should allow a user to delete a board", async ({ authenticatedPage, testContext, testPrisma }) => {
+  test("should allow a user to delete a board", async ({
+    authenticatedPage,
+    testContext,
+    testPrisma,
+  }) => {
     // Arrange — create a board owned by the logged-in test user
     const boardName = testContext.getBoardName("Delete Test Board");
     const board = await testPrisma.board.create({
@@ -85,7 +89,9 @@ test.describe("Board Deletion", () => {
     await confirmDelete.click();
 
     // Assert — error toast/message appears, DB row still exists
-    await expect(authenticatedPage.getByText(/failed to delete board/i)).toBeVisible({ timeout: 10_000 });
+    await expect(authenticatedPage.getByText(/failed to delete board/i)).toBeVisible({
+      timeout: 10_000,
+    });
 
     const stillThere = await testPrisma.board.findUnique({ where: { id: board.id } });
     expect(stillThere).not.toBeNull();

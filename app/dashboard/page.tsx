@@ -179,15 +179,15 @@ export default function Dashboard() {
 
   const confirmDelete = async () => {
     if (!boardToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/boards/${boardToDelete}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (response.ok) {
-        setBoards(boards.filter(board => board.id !== boardToDelete));
+        setBoards(boards.filter((board) => board.id !== boardToDelete));
       } else {
         const errorData = await response.json();
         setErrorDialog({
@@ -197,7 +197,7 @@ export default function Dashboard() {
         });
       }
     } catch (error) {
-      console.error('Error deleting board:', error);
+      console.error("Error deleting board:", error);
       setErrorDialog({
         open: true,
         title: "Error",
@@ -352,7 +352,6 @@ export default function Dashboard() {
               </Link>
 
               {boards.map((board) => (
-
                 <div key={board.id} className="relative group">
                   <Link href={`/boards/${board.id}`}>
                     <Card
@@ -369,7 +368,6 @@ export default function Dashboard() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-
                       </div>
                       <CardHeader>
                         <div className="grid grid-cols-[1fr_auto] items-start justify-between gap-2 pr-6">
@@ -451,23 +449,16 @@ export default function Dashboard() {
               Delete Board
             </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground dark:text-zinc-400">
-              Are you sure you want to delete this board? This action cannot be undone and all notes in this board will be permanently removed.
+              Are you sure you want to delete this board? This action cannot be undone and all notes
+              in this board will be permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={cancelDelete}
-              disabled={isDeleting}
-            >
+            <Button variant="outline" onClick={cancelDelete} disabled={isDeleting}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={confirmDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
