@@ -11,7 +11,7 @@ import { BetaBadge } from "@/components/ui/beta-badge";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Grid3x3, Archive } from "lucide-react";
+import { Plus, Grid3x3, Archive, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -64,6 +64,8 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAddBoardDialogOpen, setIsAddBoardDialogOpen] = useState(false);
+  const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
@@ -167,6 +169,48 @@ export default function Dashboard() {
     if (!open) {
       form.reset();
     }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, boardId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBoardToDelete(boardId);
+  };
+
+  const confirmDelete = async () => {
+    if (!boardToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/boards/${boardToDelete}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setBoards(boards.filter(board => board.id !== boardToDelete));
+      } else {
+        const errorData = await response.json();
+        setErrorDialog({
+          open: true,
+          title: "Failed to delete board",
+          description: errorData.error || "Failed to delete board. Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting board:', error);
+      setErrorDialog({
+        open: true,
+        title: "Error",
+        description: "An error occurred while deleting the board. Please try again.",
+      });
+    } finally {
+      setIsDeleting(false);
+      setBoardToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setBoardToDelete(null);
   };
 
   if (loading) {
@@ -308,30 +352,43 @@ export default function Dashboard() {
               </Link>
 
               {boards.map((board) => (
-                <Link href={`/boards/${board.id}`} key={board.id}>
-                  <Card
-                    data-board-id={board.id}
-                    className="group h-full min-h-34 hover:shadow-lg transition-shadow cursor-pointer whitespace-nowrap bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800"
-                  >
-                    <CardHeader>
-                      <div className="grid grid-cols-[1fr_auto] items-start justify-between gap-2">
-                        <CardTitle className="text-lg dark:text-zinc-100" title={board.name}>
-                          {board.name}
-                        </CardTitle>
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mt-0.5">
-                          {board._count.notes} {board._count.notes === 1 ? "note" : "notes"}
-                        </span>
+                <div key={board.id} className="relative group">
+                  <Link href={`/boards/${board.id}`}>
+                    <Card
+                      data-board-id={board.id}
+                      className="h-full min-h-34 hover:shadow-lg transition-shadow cursor-pointer whitespace-nowrap bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 relative group"
+                    >
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400"
+                          onClick={(e) => handleDeleteClick(e, board.id)}
+                          aria-label="Delete board"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </CardHeader>
-                    {board.description && (
-                      <CardContent>
-                        <p className="text-slate-600 dark:text-zinc-300 truncate">
-                          {board.description}
-                        </p>
-                      </CardContent>
-                    )}
-                  </Card>
-                </Link>
+                      <CardHeader>
+                        <div className="grid grid-cols-[1fr_auto] items-start justify-between gap-2 pr-6">
+                          <CardTitle className="text-lg dark:text-zinc-100" title={board.name}>
+                            {board.name}
+                          </CardTitle>
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mt-0.5">
+                            {board._count.notes} {board._count.notes === 1 ? "note" : "notes"}
+                          </span>
+                        </div>
+                      </CardHeader>
+                      {board.description && (
+                        <CardContent>
+                          <p className="text-slate-600 dark:text-zinc-300 truncate">
+                            {board.description}
+                          </p>
+                        </CardContent>
+                      )}
+                    </Card>
+                  </Link>
+                </div>
               ))}
             </div>
           </>
@@ -380,6 +437,36 @@ export default function Dashboard() {
             >
               OK
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!boardToDelete} onOpenChange={(open) => !open && cancelDelete()}>
+        <AlertDialogContent className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground dark:text-zinc-100">
+              Delete Board
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground dark:text-zinc-400">
+              Are you sure you want to delete this board? This action cannot be undone and all notes in this board will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={cancelDelete}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
