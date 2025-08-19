@@ -1299,4 +1299,125 @@ test.describe("Note Management", () => {
     const deleteButton = noteCard.getByRole("button", { name: /Delete Note/i });
     await expect(deleteButton).not.toBeVisible();
   });
+
+  test("should handle hide completed items toggle", async ({
+    authenticatedPage,
+    testContext,
+    testPrisma,
+  }) => {
+    await authenticatedPage.evaluate(() => {
+      localStorage.clear();
+    });
+
+    const boardName = testContext.getBoardName("Test Hide Completed");
+    const board = await testPrisma.board.create({
+      data: {
+        name: boardName,
+        description: testContext.prefix("Test hide completed"),
+        createdBy: testContext.userId,
+        organizationId: testContext.organizationId,
+      },
+    });
+
+    const note = await testPrisma.note.create({
+      data: {
+        color: "#fef3c7",
+        boardId: board.id,
+        createdBy: testContext.userId,
+        checklistItems: {
+          create: [
+            {
+              id: testContext.prefix("item-1"),
+              content: testContext.prefix("Item 1"),
+              checked: false,
+              order: 0,
+            },
+            {
+              id: testContext.prefix("item-2"),
+              content: testContext.prefix("Item 2"),
+              checked: true,
+              order: 1,
+            },
+          ],
+        },
+      },
+    });
+
+    await authenticatedPage.goto(`/boards/${board.id}`);
+
+    await expect(authenticatedPage.getByText(testContext.prefix("Item 1"))).toBeVisible();
+    await expect(authenticatedPage.getByText(testContext.prefix("Item 2"))).toBeVisible();
+
+    const noteCard = authenticatedPage.locator(`[data-testid="note-card"]`).first();
+    await noteCard.hover();
+    const hideCompletedButton = authenticatedPage.getByRole('button', { name: /hide completed/i });
+    await hideCompletedButton.click();
+
+    await expect(authenticatedPage.getByText(testContext.prefix("Item 1"))).toBeVisible();
+    await expect(authenticatedPage.getByText(testContext.prefix("Item 2"))).not.toBeVisible();
+
+    const localStorageValue = await authenticatedPage.evaluate((noteId) => {
+      return localStorage.getItem(`gumboard-hide-completed-${noteId}`);
+    }, note.id);
+    expect(localStorageValue).toBe("1");
+
+    await authenticatedPage.reload();
+    await expect(authenticatedPage.getByText(testContext.prefix("Item 1"))).toBeVisible();
+    await expect(authenticatedPage.getByText(testContext.prefix("Item 2"))).not.toBeVisible();
+  });
+
+  test("should respect edit permissions based on note ownership", async ({
+    authenticatedPage,
+    testContext,
+    testPrisma,
+  }) => {
+
+    const otherUser = await testPrisma.user.create({
+      data: {
+        email: `test-${Date.now()}@example.com`,
+        name: "Test User",
+        organizationId: testContext.organizationId,
+      },
+    });
+
+    const boardName = testContext.getBoardName("Test Permissions");
+    const board = await testPrisma.board.create({
+      data: {
+        name: boardName,
+        description: testContext.prefix("Test permissions"),
+        createdBy: testContext.userId,
+        organizationId: testContext.organizationId,
+      },
+    });
+
+    const note = await testPrisma.note.create({
+      data: {
+        color: "#fef3c7",
+        boardId: board.id,
+        createdBy: otherUser.id,
+        checklistItems: {
+          create: [
+            {
+              id: testContext.prefix("item-1"),
+              content: testContext.prefix("Item 1"),
+              checked: false,
+              order: 0,
+            },
+          ],
+        },
+      },
+    });
+
+    await authenticatedPage.goto(`/boards/${board.id}`);
+
+    const noteCard = authenticatedPage.locator(`[data-testid="note-card"]`).first();
+    await expect(noteCard).toBeVisible();
+    await noteCard.hover();
+    await expect(noteCard.getByRole('button', { name: /delete/i })).not.toBeVisible();
+    await expect(noteCard.getByRole('button', { name: /archive/i })).not.toBeVisible();
+
+    const checklistItem = noteCard.locator('[data-testid^="checklist-item"]').first();
+    await checklistItem.click();
+    await expect(checklistItem.locator('input[type="checkbox"]')).toHaveAttribute('disabled', '');
+  });
 });
