@@ -1314,7 +1314,7 @@ test.describe("Note Management", () => {
         organizationId: testContext.organizationId,
       },
     });
-  
+
     const note = await testPrisma.note.create({
       data: {
         color: "#fef3c7",
@@ -1338,23 +1338,23 @@ test.describe("Note Management", () => {
         },
       },
     });
-  
+
     await authenticatedPage.goto(`/boards/${board.id}`);
     await expect(authenticatedPage).toHaveURL(new RegExp(`/boards/${board.id}$`));
-  
+
     await expect(authenticatedPage.getByText(testContext.prefix("Item 1"))).toBeVisible();
     await expect(authenticatedPage.getByText(testContext.prefix("Item 2"))).toBeVisible();
-  
+
     const noteCard = authenticatedPage.locator('[data-testid="note-card"]').first();
     await noteCard.hover();
-  
+
     const hideCompletedButton = noteCard.getByRole("button", { name: /hide completed/i });
     await expect(hideCompletedButton).toBeVisible();
     await hideCompletedButton.click();
-  
+
     await expect(authenticatedPage.getByText(testContext.prefix("Item 1"))).toBeVisible();
     await expect(authenticatedPage.getByText(testContext.prefix("Item 2"))).not.toBeVisible();
-  
+
     const state = await authenticatedPage.context().storageState();
     const originEntry =
       state.origins.find((o) => o.origin.includes("127.0.0.1")) ||
@@ -1362,7 +1362,7 @@ test.describe("Note Management", () => {
     const noteKey = `gumboard-hide-completed-${note.id}`;
     const persisted = originEntry?.localStorage.find((e) => e.name === noteKey)?.value;
     expect(persisted).toBe("1");
-  
+
     await authenticatedPage.reload();
     await expect(authenticatedPage.getByText(testContext.prefix("Item 1"))).toBeVisible();
     await expect(authenticatedPage.getByText(testContext.prefix("Item 2"))).not.toBeVisible();
@@ -1380,7 +1380,7 @@ test.describe("Note Management", () => {
         organizationId: testContext.organizationId,
       },
     });
-  
+
     const boardName = testContext.getBoardName("Test Permissions");
     const board = await testPrisma.board.create({
       data: {
@@ -1390,7 +1390,7 @@ test.describe("Note Management", () => {
         organizationId: testContext.organizationId,
       },
     });
-  
+
     await testPrisma.note.create({
       data: {
         color: "#fef3c7",
@@ -1408,9 +1408,9 @@ test.describe("Note Management", () => {
         },
       },
     });
-  
+
     await authenticatedPage.goto(`/boards/${board.id}`);
-  
+
     const noteCard = authenticatedPage.locator('[data-testid="note-card"]').first();
     await expect(noteCard).toBeVisible();
     await noteCard.hover();
@@ -1427,13 +1427,9 @@ test.describe("Note Management", () => {
     }
     await authenticatedPage
       .waitForResponse(
-        (r) =>
-          r.url().includes(`/api/boards/${board.id}/notes/`) &&
-          r.request().method() === "PUT",
+        (r) => r.url().includes(`/api/boards/${board.id}/notes/`) && r.request().method() === "PUT",
         { timeout: 500 }
       )
-      .catch(() => {
-      });
+      .catch(() => {});
   });
-  
 });

@@ -93,7 +93,7 @@ export function Note({
   const [hideCompleted, setHideCompleted] = useState(false);
 
   const canEdit = !readonly && (currentUser?.id === note.user.id || currentUser?.isAdmin);
-  
+
   React.useEffect(() => {
     try {
       const saved = localStorage.getItem(`gumboard-hide-completed-${note.id}`);
@@ -390,7 +390,7 @@ export function Note({
         <div className="flex items-center space-x-2">
           {canEdit && (
             <div className="flex space-x-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-               <Tooltip>
+              <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     aria-label={hideCompleted ? "Show completed" : "Hide completed"}
@@ -510,7 +510,7 @@ export function Note({
             }}
           >
             <DraggableContainer className="space-y-1">
-            {(note.checklistItems ?? [])
+              {(note.checklistItems ?? [])
                 .filter((i) => (hideCompleted ? !i.checked : true))
                 .map((item) => (
                   <DraggableItem key={item.id} id={item.id}>
