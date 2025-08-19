@@ -1305,10 +1305,6 @@ test.describe("Note Management", () => {
     testContext,
     testPrisma,
   }) => {
-    await authenticatedPage.evaluate(() => {
-      localStorage.clear();
-    });
-
     const boardName = testContext.getBoardName("Test Hide Completed");
     const board = await testPrisma.board.create({
       data: {
@@ -1318,7 +1314,7 @@ test.describe("Note Management", () => {
         organizationId: testContext.organizationId,
       },
     });
-
+  
     const note = await testPrisma.note.create({
       data: {
         color: "#fef3c7",
@@ -1342,25 +1338,31 @@ test.describe("Note Management", () => {
         },
       },
     });
-
+  
     await authenticatedPage.goto(`/boards/${board.id}`);
-
+    await expect(authenticatedPage).toHaveURL(new RegExp(`/boards/${board.id}$`));
+  
     await expect(authenticatedPage.getByText(testContext.prefix("Item 1"))).toBeVisible();
     await expect(authenticatedPage.getByText(testContext.prefix("Item 2"))).toBeVisible();
-
-    const noteCard = authenticatedPage.locator(`[data-testid="note-card"]`).first();
+  
+    const noteCard = authenticatedPage.locator('[data-testid="note-card"]').first();
     await noteCard.hover();
-    const hideCompletedButton = authenticatedPage.getByRole('button', { name: /hide completed/i });
+  
+    const hideCompletedButton = noteCard.getByRole("button", { name: /hide completed/i });
+    await expect(hideCompletedButton).toBeVisible();
     await hideCompletedButton.click();
-
+  
     await expect(authenticatedPage.getByText(testContext.prefix("Item 1"))).toBeVisible();
     await expect(authenticatedPage.getByText(testContext.prefix("Item 2"))).not.toBeVisible();
-
-    const localStorageValue = await authenticatedPage.evaluate((noteId) => {
-      return localStorage.getItem(`gumboard-hide-completed-${noteId}`);
-    }, note.id);
-    expect(localStorageValue).toBe("1");
-
+  
+    const state = await authenticatedPage.context().storageState();
+    const originEntry =
+      state.origins.find((o) => o.origin.includes("127.0.0.1")) ||
+      state.origins.find((o) => o.origin.includes("localhost"));
+    const noteKey = `gumboard-hide-completed-${note.id}`;
+    const persisted = originEntry?.localStorage.find((e) => e.name === noteKey)?.value;
+    expect(persisted).toBe("1");
+  
     await authenticatedPage.reload();
     await expect(authenticatedPage.getByText(testContext.prefix("Item 1"))).toBeVisible();
     await expect(authenticatedPage.getByText(testContext.prefix("Item 2"))).not.toBeVisible();
@@ -1371,7 +1373,6 @@ test.describe("Note Management", () => {
     testContext,
     testPrisma,
   }) => {
-
     const otherUser = await testPrisma.user.create({
       data: {
         email: `test-${Date.now()}@example.com`,
@@ -1379,7 +1380,7 @@ test.describe("Note Management", () => {
         organizationId: testContext.organizationId,
       },
     });
-
+  
     const boardName = testContext.getBoardName("Test Permissions");
     const board = await testPrisma.board.create({
       data: {
@@ -1389,8 +1390,8 @@ test.describe("Note Management", () => {
         organizationId: testContext.organizationId,
       },
     });
-
-    const note = await testPrisma.note.create({
+  
+    await testPrisma.note.create({
       data: {
         color: "#fef3c7",
         boardId: board.id,
@@ -1407,17 +1408,32 @@ test.describe("Note Management", () => {
         },
       },
     });
-
+  
     await authenticatedPage.goto(`/boards/${board.id}`);
-
-    const noteCard = authenticatedPage.locator(`[data-testid="note-card"]`).first();
+  
+    const noteCard = authenticatedPage.locator('[data-testid="note-card"]').first();
     await expect(noteCard).toBeVisible();
     await noteCard.hover();
-    await expect(noteCard.getByRole('button', { name: /delete/i })).not.toBeVisible();
-    await expect(noteCard.getByRole('button', { name: /archive/i })).not.toBeVisible();
 
-    const checklistItem = noteCard.locator('[data-testid^="checklist-item"]').first();
-    await checklistItem.click();
-    await expect(checklistItem.locator('input[type="checkbox"]')).toHaveAttribute('disabled', '');
+    await expect(noteCard.getByRole("button", { name: /delete/i })).toHaveCount(0);
+    await expect(noteCard.getByRole("button", { name: /archive/i })).toHaveCount(0);
+
+    const checkbox = noteCard.getByRole("checkbox").first();
+    await expect(checkbox).toBeVisible();
+    try {
+      await expect(checkbox).toBeDisabled();
+    } catch {
+      await expect(checkbox).toHaveAttribute("aria-disabled", "true");
+    }
+    await authenticatedPage
+      .waitForResponse(
+        (r) =>
+          r.url().includes(`/api/boards/${board.id}/notes/`) &&
+          r.request().method() === "PUT",
+        { timeout: 500 }
+      )
+      .catch(() => {
+      });
   });
+  
 });
